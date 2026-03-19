@@ -16,7 +16,6 @@ def products_view(page: ft.Page):
         ft.DataColumn(ft.Text("Max", style=Textos.text)),
     ]
 
-    # Tabla inicial vacía
     tabla = ft.DataTable(
         columns=columnas,
         rows=[], 
@@ -30,14 +29,14 @@ def products_view(page: ft.Page):
     async def actualizar_data():
         nonlocal rows_data, total_items
         try:
-            # Trae los registros reales de tu base de datos
+            # Se obtienen los registros reales de la DB
             data = listar_productos(limit=500, offset=0)
             total_items = int(data.get("total", 0))
             total_text.value = f"Total de productos: {total_items}"
             rows_data = data.get("items", [])
             actualizar_filas()
         except Exception as e:
-            print(f"Error al cargar DB: {e}")
+            print(f"Error al cargar registros: {e}")
 
     def actualizar_filas():
         nuevas_filas = []
@@ -58,17 +57,23 @@ def products_view(page: ft.Page):
 
     page.run_task(actualizar_data)
     
-    btn_nuevo = ft.ElevatedButton("Nuevo", bgcolor=Colors.BG, color="white")
-
-    contenido = ft.Column(
-        expand=True, 
-        spacing=30,
+    cuerpo_vista = ft.Column(
+        expand=True,
+        spacing=20,
         scroll=ft.ScrollMode.AUTO, 
         controls=[
-            btn_nuevo,
             total_text,
-            ft.Container(content=tabla) 
+            ft.Container(content=tabla)
         ]
     )
 
-    return contenido
+    tarjeta = ft.Card(
+        content=ft.Container(
+            content=cuerpo_vista,
+            padding=20
+        ),
+        expand=True
+    )
+
+    final = ft.Container(expand=True, alignment=ft.Alignment(0, -1), content=tarjeta)
+    return final
