@@ -1,10 +1,10 @@
 import flet as ft
 
 class Colors:
-    BG = "#EDEAEA"
+    BG = "#000000"
     CARD = "#004CFF"
     BORDER = "#000E77"
-    TEXT = "#1E1E1E"
+    TEXT = "#FFFFFF"
     PRYMARY = "#334ACA"
     SUCCESS = "#256B19"
     INFO = "#04B4FA"
