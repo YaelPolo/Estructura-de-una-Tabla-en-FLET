@@ -1,83 +1,90 @@
 import flet as ft
-from typing import Any
+from app.services.transacciones_api_productos import (
+    create_product,
+    listar_productos,
+    update_product
+)
 from app.views.nuevo_editar import formulario_nuevo_editar_producto
-from app.services.transacciones_api_productos import create_product
+from app.components.popup import show_popup
+from app.components.error import show_snackbar
 
-async def products_view(page: ft.Page) -> ft.Control:
-    
-    def inicio_editar_producto(producto_existente):
-        async def guardar_edicion(data_editada):
-            try:
-                print(f"Editando producto ID {data_editada.get('id')}")
-                await actualizar_data()
-            except Exception as ex:
-                await show_snackbar(page, "Error", str(ex), bgcolor=ft.Colors.DANGER)
-
-        dlg, open_, close = formulario_nuevo_editar_producto(
-            page, 
-            on_submit=guardar_edicion, 
-            initial=producto_existente
-        )
-        open_()
+def products_view(page: ft.Page) -> ft.Control:
     tabla = ft.DataTable(
         columns=[
             ft.DataColumn(ft.Text("Nombre")),
             ft.DataColumn(ft.Text("Cantidad")),
             ft.DataColumn(ft.Text("Ingreso")),
-            ft.DataColumn(ft.Text("Min")),
-            ft.DataColumn(ft.Text("Max")),
-            ft.DataColumn(ft.Text("Acciones")), 
+            ft.DataColumn(ft.Text("Acciones")),
         ],
         rows=[]
     )
-    def construir_filas(productos):
-        filas = []
-        for p in productos:
-            filas.append(
-                ft.DataRow(
-                    cells=[
+    async def actualizar_data():
+        try:
+            data = listar_productos(limit=500, offset=0)
+            items = data.get("items", [])
+            nuevas_filas = []
+            for p in items:
+                print("PRODUCTO:", p)  
+                nuevas_filas.append(
+                    ft.DataRow(cells=[
                         ft.DataCell(ft.Text(p.get("name", ""))),
-                        ft.DataCell(ft.Text(str(p.get("quantity", 0)))),
+                        ft.DataCell(ft.Text(str(p.get("quantity", "")))),
                         ft.DataCell(ft.Text(p.get("ingreso_date", ""))),
-                        ft.DataCell(ft.Text(str(p.get("min_stock", 0)))),
-                        ft.DataCell(ft.Text(str(p.get("max_stock", 0)))),
                         ft.DataCell(
                             ft.IconButton(
-                                icon=ft.Icons.EDIT_OUTLINED,
-                                icon_color="blue",
-                                on_click=lambda e, prod=p: inicio_editar_producto(prod)
+                                icon=ft.Icons.EDIT,
+                                on_click=lambda e, prod=p: abrir_formulario(prod)
                             )
                         ),
-                    ]
+                    ])
                 )
-            )
-        tabla.rows = filas
-        page.update()
-    async def actualizar_data():
-        print("Actualizando tabla...")
-        pass
-    async def show_snackbar(page: ft.Page, title: str, message: str, bgcolor: str):
-        page.snack_bar = ft.SnackBar(ft.Text(f"{title}: {message}"), bgcolor=bgcolor)
-        page.snack_bar.open = True
-        page.update()
-    def inicio_new_producto(_e):
-        async def crear_nuevo_producto(data: dict):
+            tabla.rows = nuevas_filas
+            page.update()
+        except Exception as e:
+            print("Error cargando tabla:", e)
+    def abrir_formulario(producto_existente=None):
+        print("ABRIENDO FORMULARIO CON:", producto_existente)
+        async def procesar_datos(data_capturada: dict):
             try:
-                await create_product(data)
-                await show_snackbar(page, "Éxito", "Producto creado.", bgcolor=ft.Colors.SUCCESS)
+                print("DATOS RECIBIDOS:", data_capturada)
+                if "id" in data_capturada:
+                    print("EDITANDO PRODUCTO")
+                    product_id = data_capturada["id"]
+                    data_sin_id = data_capturada.copy()
+                    del data_sin_id["id"]
+                    update_product(product_id, data_sin_id)
+                    await show_snackbar(page, "Éxito", "Producto actualizado.", bgcolor=ft.Colors.GREEN)
+                else:
+                    print("CREANDO PRODUCTO")
+                    create_product(data_capturada)
+                    await show_snackbar(page, "Éxito", "Producto creado.", bgcolor=ft.Colors.GREEN)
                 await actualizar_data()
             except Exception as ex:
-                await show_snackbar(page, "Error", str(ex), bgcolor=ft.Colors.DANGER)
-
-        dlg, open_, close = formulario_nuevo_editar_producto(page, on_submit=crear_nuevo_producto, initial=None)
-        open_()
-    btn_nuevo = ft.ElevatedButton("Nuevo producto", icon=ft.Icons.ADD, on_click=inicio_new_producto)
-    total_text = ft.Text("Total de productos: 0", weight=ft.FontWeight.BOLD)
+                print("ERROR:", ex)
+                await show_popup(page, "Error", str(ex))
+        dlg, open_form, _ = formulario_nuevo_editar_producto(
+            page,
+            on_submit=procesar_datos,
+            initial=producto_existente
+        )
+        open_form()
+    btn_nuevo = ft.FilledButton(
+        "Nuevo producto",
+        icon=ft.Icons.ADD,
+        on_click=lambda e: abrir_formulario()
+    )
+    page.run_task(actualizar_data)
     return ft.Column(
         expand=True,
         controls=[
-            btn_nuevo, 
-            total_text, 
+            ft.Row(
+                [
+                    ft.Text("Inventario", size=25, weight="bold"),
+                    btn_nuevo
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+            ),
+            ft.Divider(),
             ft.Container(content=tabla, padding=10)
         ]
     )
