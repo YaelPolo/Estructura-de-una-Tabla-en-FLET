@@ -64,5 +64,8 @@ def delete_product(product_id:str):
         raise ValueError(f"Error {r.status_code}", r.status_code, r.text)
     except requests.exceptions.RequestException as e:
         raise ValueError(f"Error de conexión", None, str(e))
+    
+class ApiError(Exception):
+    pass
 
 #print(listar_productos())
