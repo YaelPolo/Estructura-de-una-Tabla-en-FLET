@@ -14,6 +14,8 @@ def products_view(page: ft.Page) -> ft.Control:
             ft.DataColumn(ft.Text("Nombre")),
             ft.DataColumn(ft.Text("Cantidad")),
             ft.DataColumn(ft.Text("Ingreso")),
+            ft.DataColumn(ft.Text("Min")),
+            ft.DataColumn(ft.Text("Max")),
             ft.DataColumn(ft.Text("Acciones")),
         ],
         rows=[]
@@ -29,11 +31,16 @@ def products_view(page: ft.Page) -> ft.Control:
                     ft.DataRow(cells=[
                         ft.DataCell(ft.Text(p.get("name", ""))),
                         ft.DataCell(ft.Text(str(p.get("quantity", "")))),
-                        ft.DataCell(ft.Text(p.get("ingreso_date", ""))),
+                        ft.DataCell(ft.Text(p.get("ingreso_date", "") or "")),
+                        ft.DataCell(ft.Text(str(p.get("min_stock", "")))),
+                        ft.DataCell(ft.Text(str(p.get("max_stock", "")))),
+                        #### Se agrega para editar producto ###
                         ft.DataCell(
-                            ft.IconButton(
-                                icon=ft.Icons.EDIT,
-                                on_click=lambda e, prod=p: abrir_formulario(prod)
+                            ft.Row(
+                                controls=[
+                                    ft.IconButton(icon=ft.Icons.EDIT, tooltip="Editar", on_click=lambda e, p=p: inicio_editar_producto(p)),
+                                    # ft.IconButton(icon=ft.Icons.DELETE, tooltip="Borrar", on_click=lambda e, p=p: inicio_borrar_producto(p))
+                                ]
                             )
                         ),
                     ])
@@ -68,6 +75,22 @@ def products_view(page: ft.Page) -> ft.Control:
             initial=producto_existente
         )
         open_form()
+
+    def inicio_editar_producto(p: dict):
+        async def editar_producto(data: dict):
+            try:
+                data_sin_id = data.copy()
+                if "id" in data_sin_id:
+                    del data_sin_id["id"]
+                update_product(p["id"], data_sin_id)
+                close_()
+                await show_snackbar(page, "Éxito", "Producto actualizado", bgcolor=ft.Colors.GREEN)
+                await actualizar_data()
+            except Exception as ex:
+                await show_snackbar(page, "Error", str(ex), bgcolor=ft.Colors.RED)
+                
+        dlg, open_, close_ = formulario_nuevo_editar_producto(page, on_submit=editar_producto, initial=p)
+        open_()
     btn_nuevo = ft.FilledButton(
         "Nuevo producto",
         icon=ft.Icons.ADD,
@@ -85,6 +108,10 @@ def products_view(page: ft.Page) -> ft.Control:
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN
             ),
             ft.Divider(),
-            ft.Container(content=tabla, padding=10)
+            ft.Column(
+                controls=[ft.Container(content=tabla, padding=10)],
+                scroll=ft.ScrollMode.ADAPTIVE,
+                expand=True
+            )
         ]
     )

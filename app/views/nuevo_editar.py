@@ -21,10 +21,11 @@ def formulario_nuevo_editar_producto(page: ft.Page, on_submit, initial: dict | N
             await show_popup(page, "Validación", "El nombre es obligatorio.")
             return
         try:
+            ingreso_str = ingreso_date.value.strip()
             data = {
                 "name": name.value.strip(),
                 "quantity": int(quantity.value),
-                "ingreso_date": ingreso_date.value.strip(),
+                "ingreso_date": ingreso_str if ingreso_str else None,
                 "min_stock": int(min_stock.value),
                 "max_stock": int(max_stock.value),
             }
