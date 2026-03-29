@@ -2,7 +2,8 @@ import flet as ft
 from app.services.transacciones_api_productos import (
     create_product,
     listar_productos,
-    update_product
+    update_product,
+    delete_product
 )
 from app.views.nuevo_editar import formulario_nuevo_editar_producto
 from app.components.popup import show_popup
@@ -39,7 +40,7 @@ def products_view(page: ft.Page) -> ft.Control:
                             ft.Row(
                                 controls=[
                                     ft.IconButton(icon=ft.Icons.EDIT, tooltip="Editar", on_click=lambda e, p=p: inicio_editar_producto(p)),
-                                    # ft.IconButton(icon=ft.Icons.DELETE, tooltip="Borrar", on_click=lambda e, p=p: inicio_borrar_producto(p))
+                                    ft.IconButton(icon=ft.Icons.DELETE, tooltip="Borrar", on_click=lambda e, p=p: inicio_borrar_producto(p))
                                 ]
                             )
                         ),
@@ -91,6 +92,21 @@ def products_view(page: ft.Page) -> ft.Control:
                 
         dlg, open_, close_ = formulario_nuevo_editar_producto(page, on_submit=editar_producto, initial=p)
         open_()
+
+    ############# Borrar producto #############
+    async def borrar_producto(p: dict):
+        try:
+            delete_product(p["id"])
+            await show_snackbar(page, "Éxito", "Producto borrado", bgcolor=ft.Colors.GREEN)
+            await actualizar_data()
+        except Exception as ex:
+            await show_snackbar(page, "Error", str(ex), bgcolor=ft.Colors.RED)
+
+    def inicio_borrar_producto(p: dict):
+        async def tarea():
+            await borrar_producto(p)
+        page.run_task(tarea)
+
     btn_nuevo = ft.FilledButton(
         "Nuevo producto",
         icon=ft.Icons.ADD,

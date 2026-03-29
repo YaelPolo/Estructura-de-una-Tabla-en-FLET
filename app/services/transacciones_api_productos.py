@@ -16,3 +16,10 @@ def update_product(product_id: str, data: dict) -> dict:
     r = requests.put(f"{BASE}/{product_id}", json=data, timeout=TIME_OUT)
     print("PUT:", r.status_code, r.text)
     return r.json()
+
+def delete_product(product_id: str) -> dict:
+    r = requests.delete(f"{BASE}/{product_id}", timeout=TIME_OUT)
+    print("DELETE:", r.status_code, r.text)
+    if r.text:
+        return r.json()
+    return {}
